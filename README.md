@@ -26,3 +26,66 @@ ___
 - All work must be your own. During the grading process we will check the revision history. Submissions that do not meet this requirement will not be considered.
 - You must have at least two new routes in your index.js file and one new pug template for the homepage.
 - You must create a developer test account and link to it in your README.md file. Submissions that do not meet this requirement will not be considered.
+
+
+
+## Anime Characters — HubSpot Integration
+
+This project was created for the Integrating With HubSpot I:
+Foundations certification practicum.
+
+### Overview
+
+A Node.js application that integrates with HubSpot CRM
+to retrieve and create Anime Character records.
+
+### Technologies Used
+
+- Node.js
+- Express.js
+- Axios
+- Pug
+- HTML and CSS
+- HubSpot CRM API
+
+### Custom Object
+
+Object Name: Anime Characters
+
+Properties:
+- Name
+- Anime
+- Power
+
+The custom object is associated with HubSpot Contacts.
+
+### HubSpot Custom Object List
+
+[View Anime Characters in HubSpot](https://app-na2.hubspot.com/contacts/247989065/objects/2-271756358/views/all/list)
+
+### Features
+
+- Display Anime Characters in a table
+- Add new Anime Characters through a form
+- Retrieve records using HubSpot GET API requests
+- Create records using HubSpot POST API requests
+
+### Running Locally
+
+1. Install dependencies:
+
+   npm install
+
+2. Create a .env file with your HubSpot private app
+   access token and required configuration.
+
+3. Start the application:
+
+   node index.js
+
+4. Open http://localhost:3000
+
+### Security
+
+Private app access tokens are stored in a .env file
+and are not committed to GitHub.

@@ -1,0 +1,44 @@
+
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title= title
+    link(rel="stylesheet", href="/css/style.css")
+
+  body
+    h1 Add Anime Character
+
+    form(action="/update-cobj", method="POST")
+      div
+        label(for="name") Character Name
+        input(
+          type="text"
+          id="name"
+          name="name"
+          required
+        )
+
+      div
+        label(for="anime") Anime
+        input(
+          type="text"
+          id="anime"
+          name="anime"
+          required
+        )
+
+      div
+        label(for="power") Power
+        input(
+          type="text"
+          id="power"
+          name="power"
+          required
+        )
+
+      button(type="submit") Add Character
+
+    p
+      a(href="/") Return to the homepage

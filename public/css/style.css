@@ -1,58 +1,89 @@
-@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
 
-body, * {
-    font-family: 'Roboto', sans-serif;
-    margin: 0;
-    padding: 0;
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 40px 20px;
+  font-family: Arial, sans-serif;
+  background: #10101c;
+  color: #f5f3ff;
+}
+
+.container {
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 32px;
+  background: #1d1b30;
+  border: 1px solid #393453;
+  border-radius: 16px;
 }
 
 h1 {
-    margin: 1rem;
+  margin-top: 0;
+  color: #c4b5fd;
 }
 
-.cards {
-    display: flex;
-    align-items: center;
-    justify-content: space-evenly;
-    flex-wrap: wrap;
+a {
+  color: #c4b5fd;
 }
 
-.card {
-    flex-basis: 31%;
-    margin: 1rem 0.4rem;
-    padding: 1rem 0.4rem 2.5rem 0.4rem;
-    border: solid 1px lightgrey;
-    border-radius: 15px;
-    box-shadow: 3px 2px 6px lightgrey;
+.btn, button {
+  display: inline-block;
+  padding: 12px 20px;
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.card__email {
-    font-size: 1rem;
+.btn:hover, button:hover {
+  background: #6d28d9;
 }
 
-.form-wrapper {
-    font-size: 18px;
-    max-width: 768px;
-    margin: 2rem auto;
-    padding: 2rem;
-    border: solid 1px lightgrey;
-    border-radius: 15px;
-    box-shadow: 3px 2px 6px lightgrey;
+table {
+  width: 100%;
+  margin-top: 24px;
+  border-collapse: collapse;
 }
 
-label, input {
-    margin-top: 5px;
-    display: block;
-    font-size: inherit;
+th, td {
+  padding: 16px;
+  text-align: left;
+  border-bottom: 1px solid #393453;
 }
 
-input[type="text"] {
-    padding: .25rem;
+th {
+  background: #30294b;
+  color: #ddd6fe;
 }
 
-input[type="submit"] {
-    background-color: lightgrey;
-    border: none;
-    padding: .375rem 1rem;
-    margin-top: 10px;
+tr:hover {
+  background: #292540;
+}
+
+label {
+  display: block;
+  margin: 18px 0 6px;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  background: #141322;
+  border: 1px solid #575071;
+  border-radius: 8px;
+  color: white;
+}
+
+button {
+  margin-top: 20px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-top: 20px;
 }

@@ -1,0 +1,26 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title= title
+    link(rel="stylesheet", href="/css/style.css")
+
+  body
+    h1 Anime Characters
+
+    a(href="/update-cobj") Add to this table
+
+    table(border="1")
+      thead
+        tr
+          th Name
+          th Anime
+          th Power
+
+      tbody
+        each character in characters
+          tr
+            td= character.properties.name
+            td= character.properties.anime
+            td= character.properties.power

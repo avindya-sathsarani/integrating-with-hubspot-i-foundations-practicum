@@ -1,8 +1,7 @@
+require("dotenv").config({ quiet: true });
 
-require('dotenv').config();
-
-const express = require('express');
-const axios = require('axios');
+const express = require("express");
+const axios = require("axios");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,99 +9,344 @@ const PORT = process.env.PORT || 3000;
 const HUBSPOT_ACCESS_TOKEN = process.env.HUBSPOT_ACCESS_TOKEN;
 const OBJECT_TYPE = process.env.HUBSPOT_OBJECT_TYPE;
 
-app.set('view engine', 'pug');
+if (!HUBSPOT_ACCESS_TOKEN || !OBJECT_TYPE) {
+  console.error("Missing HubSpot environment variables.");
+  process.exit(1);
+}
+
+// App Configuration
+app.set("view engine", "pug");
 
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(express.static("public"));
 
-// GET / - Display Anime Characters
-app.get('/', async (req, res) => {
+// HubSpot API Configuration
+const hubspotAPI = axios.create({
+  baseURL: "https://api.hubapi.com",
+  timeout: 15000,
+  headers: {
+    Authorization: `Bearer ${HUBSPOT_ACCESS_TOKEN}`,
+    "Content-Type": "application/json",
+  },
+});
+
+// Reusable Error Handler
+function handleHubSpotError(error, res, action) {
+  const status = error.response?.status;
+  const message =
+    error.response?.data?.message || error.message;
+
+  console.error(`HubSpot ${action} error:`, {
+    status,
+    message,
+  });
+
+  if (status === 400) {
+    return res.status(400).send("Invalid request data.");
+  }
+
+  if (status === 401 || status === 403) {
+    return res.status(502).send(
+      "HubSpot authentication or permissions error."
+    );
+  }
+
+  if (status === 404) {
+    return res.status(404).send(
+      "The requested character was not found."
+    );
+  }
+
+  if (status === 429) {
+    return res.status(503).send(
+      "HubSpot rate limit exceeded. Please try again later."
+    );
+  }
+
+  return res.status(502).send(
+    "Unable to complete the request with HubSpot."
+  );
+}
+
+// Validate Character Form Data
+function validateCharacter(body) {
+  const { name, anime, power } = body;
+
+  if (
+    typeof name !== "string" ||
+    typeof anime !== "string" ||
+    typeof power !== "string" ||
+    !name.trim() ||
+    !anime.trim() ||
+    !power.trim()
+  ) {
+    return null;
+  }
+
+  return {
+    name: name.trim(),
+    anime: anime.trim(),
+    power: power.trim(),
+  };
+}
+
+// Validate HubSpot Record ID
+function validCharacterId(id) {
+  return /^\d+$/.test(id);
+}
+
+// =====================================
+// GET / - Display Characters
+// With Pagination
+// =====================================
+
+app.get("/", async (req, res) => {
   try {
-    const response = await axios.get(
-      `https://api.hubapi.com/crm/v3/objects/${OBJECT_TYPE}`,
-      {
-        headers: {
-          Authorization: `Bearer ${HUBSPOT_ACCESS_TOKEN}`
-        },
-        params: {
-          properties: 'name,anime,power',
-          limit: 100
-        }
-      }
+    const limit = 10;
+
+    const after =
+      typeof req.query.after === "string"
+        ? req.query.after
+        : "";
+
+    const history =
+      typeof req.query.history === "string"
+        ? req.query.history
+        : "";
+
+    if (
+      (after && !/^\d+$/.test(after)) ||
+      (history && !/^(start|\d+)(,(start|\d+))*$/.test(history))
+    ) {
+      return res.status(400).send(
+        "Invalid pagination parameters."
+      );
+    }
+
+    const params = {
+      properties: "name,anime,power",
+      limit,
+    };
+
+    if (after) {
+      params.after = after;
+    }
+
+    const response = await hubspotAPI.get(
+      `/crm/v3/objects/${OBJECT_TYPE}`,
+      { params }
     );
 
     const characters = response.data.results;
 
-    res.render('homepage', {
-      title: 'Anime Characters | HubSpot Practicum',
-      characters
+    const previousCursors = history
+      ? history.split(",")
+      : [];
+
+    const nextCursor =
+      response.data.paging?.next?.after || null;
+
+    const nextHistory = [
+      ...previousCursors,
+      after || "start",
+    ].join(",");
+
+    const previousCursor = previousCursors.length
+      ? previousCursors[previousCursors.length - 1]
+      : null;
+
+    const previousHistory = previousCursors
+      .slice(0, -1)
+      .join(",");
+
+    res.render("homepage", {
+      title: "Anime Characters | HubSpot CRM v2",
+      characters,
+      nextPage: nextCursor,
+      nextHistory,
+      previousCursor,
+      previousHistory,
+      hasPrevious: previousCursors.length > 0,
     });
-
   } catch (error) {
-    console.error(
-      'Error fetching characters:',
-      error.response?.data?.message || error.message
+    return handleHubSpotError(
+      error,
+      res,
+      "fetch characters"
     );
-
-    res.status(500).send('Failed to retrieve Anime Characters.');
   }
 });
 
+// =====================================
+// GET /update-cobj - Add Character Form
+// =====================================
 
- // POST /update-cobj - Create a new Anime Character
-app.post('/update-cobj', async (req, res) => {
-  const { name, anime, power } = req.body;
+app.get("/update-cobj", (req, res) => {
+  res.render("updates", {
+    title: "Add Anime Character | HubSpot CRM v2",
+  });
+});
 
-  // Validate the form fields
-  if (
-    !name?.trim() ||
-    !anime?.trim() ||
-    !power?.trim()
-  ) {
-    return res.status(400).send('All fields are required.');
+// =====================================
+// POST /update-cobj - Create Character
+// =====================================
+
+app.post("/update-cobj", async (req, res) => {
+  const properties = validateCharacter(req.body);
+
+  if (!properties) {
+    return res.status(400).send(
+      "All character fields are required."
+    );
   }
 
   try {
-    const response = await axios.post(
-      `https://api.hubapi.com/crm/v3/objects/${OBJECT_TYPE}`,
-      {
-        properties: {
-          name: name.trim(),
-          anime: anime.trim(),
-          power: power.trim()
-        }
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${HUBSPOT_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json'
-        }
-      }
+    const response = await hubspotAPI.post(
+      `/crm/v3/objects/${OBJECT_TYPE}`,
+      { properties }
     );
 
-    console.log('Character created:', response.data.id);
+    console.log(
+      "Character created:",
+      response.data.id
+    );
 
-    // Return to the homepage after successful creation
-    res.redirect('/');
-
+    return res.redirect("/");
   } catch (error) {
-    console.error(
-      'Error creating character:',
-      error.response?.status,
-      error.response?.data?.message || error.message
+    return handleHubSpotError(
+      error,
+      res,
+      "create character"
     );
-
-    res.status(500).send('Failed to create Anime Character.');
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+// =====================================
+// GET /edit-character/:id - Edit Form
+// =====================================
+
+app.get("/edit-character/:id", async (req, res) => {
+  const characterId = req.params.id;
+
+  if (!validCharacterId(characterId)) {
+    return res.status(400).send(
+      "Invalid character ID."
+    );
+  }
+
+  try {
+    const response = await hubspotAPI.get(
+      `/crm/v3/objects/${OBJECT_TYPE}/${characterId}`,
+      {
+        params: {
+          properties: "name,anime,power",
+        },
+      }
+    );
+
+    return res.render("edit-character", {
+      title: "Edit Anime Character | HubSpot CRM v2",
+      character: response.data,
+    });
+  } catch (error) {
+    return handleHubSpotError(
+      error,
+      res,
+      "fetch character"
+    );
+  }
 });
 
+// =====================================
+// POST /edit-character/:id - Update
+// =====================================
 
-app.get('/update-cobj', (req, res) => {
-  res.render('updates', {
-    title: 'Update Custom Object Form | Integrating With HubSpot I Practicum'
+app.post("/edit-character/:id", async (req, res) => {
+  const characterId = req.params.id;
+  const properties = validateCharacter(req.body);
+
+  if (!validCharacterId(characterId)) {
+    return res.status(400).send(
+      "Invalid character ID."
+    );
+  }
+
+  if (!properties) {
+    return res.status(400).send(
+      "All character fields are required."
+    );
+  }
+
+  try {
+    await hubspotAPI.patch(
+      `/crm/v3/objects/${OBJECT_TYPE}/${characterId}`,
+      { properties }
+    );
+
+    console.log(
+      "Character updated:",
+      characterId
+    );
+
+    return res.redirect("/");
+  } catch (error) {
+    return handleHubSpotError(
+      error,
+      res,
+      "update character"
+    );
+  }
+});
+
+// =====================================
+// POST /delete-character/:id - Delete
+// =====================================
+
+app.post("/delete-character/:id", async (req, res) => {
+  const characterId = req.params.id;
+
+  if (!validCharacterId(characterId)) {
+    return res.status(400).send(
+      "Invalid character ID."
+    );
+  }
+
+  try {
+    await hubspotAPI.delete(
+      `/crm/v3/objects/${OBJECT_TYPE}/${characterId}`
+    );
+
+    console.log(
+      "Character deleted:",
+      characterId
+    );
+
+    return res.redirect("/");
+  } catch (error) {
+    return handleHubSpotError(
+      error,
+      res,
+      "delete character"
+    );
+  }
+});
+
+// =====================================
+// 404 - Unknown Routes
+// =====================================
+
+app.use((req, res) => {
+  res.status(404).send("Page not found.");
+});
+
+// =====================================
+// Start Server
+// =====================================
+
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
   });
-});
+}
+
+module.exports = app;

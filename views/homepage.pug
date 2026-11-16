@@ -7,20 +7,136 @@ html(lang="en")
     link(rel="stylesheet", href="/css/style.css")
 
   body
-    h1 Anime Characters
+    main.container
+      h1 Anime Characters
+      p.subtitle Manage your anime character collection with HubSpot CRM.
 
-    a(href="/update-cobj") Add to this table
+      a.btn(href="/update-cobj") + Add New Character
 
-    table(border="1")
-      thead
-        tr
-          th Name
-          th Anime
-          th Power
+      .toolbar
+        input(
+          type="search"
+          id="searchInput"
+          placeholder="Search by character or anime..."
+          aria-label="Search characters on this page"
+          oninput="searchCharacters()"
+        )
 
-      tbody
-        each character in characters
-          tr
-            td= character.properties.name
-            td= character.properties.anime
-            td= character.properties.power
+        select(
+          id="sortSelect"
+          aria-label="Sort characters on this page"
+          onchange="sortCharacters()"
+        )
+          option(value="default") Default Order
+          option(value="name-asc") Name (A-Z)
+          option(value="name-desc") Name (Z-A)
+          option(value="anime-asc") Anime (A-Z)
+          option(value="anime-desc") Anime (Z-A)
+
+      .table-wrapper
+        table
+          thead
+            tr
+              th Name
+              th Anime
+              th Power
+              th Actions
+
+          tbody
+            each character in characters
+              tr
+                td= character.properties.name
+                td= character.properties.anime
+                td= character.properties.power
+
+                td
+                  .actions
+                    a.btn.btn-secondary.btn-small(
+                      href=`/edit-character/${character.id}`
+                    ) Edit
+
+                    form(
+                      action=`/delete-character/${character.id}`
+                      method="POST"
+                      onsubmit="return confirm('Are you sure you want to delete this character?')"
+                    )
+                      button.btn-danger.btn-small(type="submit") Delete
+
+      if characters.length === 0
+        p.empty-state No anime characters found.
+
+      p#searchEmpty.empty-state(style="display:none") No matching characters on this page.
+
+      .pagination
+        div
+          if hasPrevious
+            if previousCursor === 'start'
+              a.btn.btn-secondary(href="/") Previous Page
+            else
+              a.btn.btn-secondary(
+                href=`/?after=${encodeURIComponent(previousCursor)}&history=${encodeURIComponent(previousHistory)}`
+              ) Previous Page
+
+        div
+          if nextPage
+            a.btn(
+              href=`/?after=${encodeURIComponent(nextPage)}&history=${encodeURIComponent(nextHistory)}`
+            ) Next Page
+
+      script.
+        function searchCharacters() {
+          const filter = document
+            .getElementById('searchInput')
+            .value.toLowerCase().trim();
+
+          const rows = document.querySelectorAll('tbody tr');
+          let visibleCount = 0;
+
+          rows.forEach(row => {
+            const name = row.cells[0].textContent.toLowerCase();
+            const anime = row.cells[1].textContent.toLowerCase();
+
+            const matches =
+              name.includes(filter) || anime.includes(filter);
+
+            row.style.display = matches ? '' : 'none';
+
+            if (matches) visibleCount++;
+          });
+
+          document.getElementById('searchEmpty').style.display =
+            rows.length > 0 && visibleCount === 0 ? 'block' : 'none';
+        }
+
+        function sortCharacters() {
+          const sortValue = document.getElementById('sortSelect').value;
+          const tbody = document.querySelector('table tbody');
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+
+          if (sortValue === 'default') {
+            rows.sort((a, b) =>
+              Number(a.dataset.originalIndex) -
+              Number(b.dataset.originalIndex)
+            );
+          } else {
+            const [field, direction] = sortValue.split('-');
+            const columnIndex = field === 'name' ? 0 : 1;
+
+            rows.sort((a, b) => {
+              const valueA = a.cells[columnIndex].textContent.trim();
+              const valueB = b.cells[columnIndex].textContent.trim();
+
+              const result = valueA.localeCompare(valueB, undefined, {
+                sensitivity: 'base'
+              });
+
+              return direction === 'asc' ? result : -result;
+            });
+          }
+
+          rows.forEach(row => tbody.appendChild(row));
+        }
+
+        document.querySelectorAll('table tbody tr').forEach((row, index) => {
+          row.dataset.originalIndex = index;
+        });

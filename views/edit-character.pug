@@ -1,0 +1,50 @@
+doctype html
+html(lang="en")
+  head
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title= title
+    link(rel="stylesheet", href="/css/style.css")
+
+  body
+    main.container.form-card
+      h1 Edit Anime Character
+      p.subtitle Update the character information stored in HubSpot.
+
+      form(action=`/edit-character/${character.id}`, method="POST")
+        .form-group
+          label(for="name") Character Name
+          input(
+            type="text"
+            id="name"
+            name="name"
+            value=character.properties.name
+            maxlength="255"
+            required
+          )
+
+        .form-group
+          label(for="anime") Anime
+          input(
+            type="text"
+            id="anime"
+            name="anime"
+            value=character.properties.anime
+            maxlength="255"
+            required
+          )
+
+        .form-group
+          label(for="power") Power
+          input(
+            type="text"
+            id="power"
+            name="power"
+            value=character.properties.power
+            maxlength="255"
+            required
+          )
+
+        .form-actions
+          button(type="submit") Save Changes
+          a.btn.btn-secondary(href="/") Cancel
